@@ -5,6 +5,7 @@ const app = express();
 const mysql = require('mysql');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -21,6 +22,23 @@ app.use(cors());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+// Prevent Crashed
+process.on('uncaughtException', (error, origin) => {
+    console.log('----- Uncaught exception -----');
+    console.log(error);
+    console.log('----- Exception origin -----');
+    console.log(origin);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('----- Unhandled Rejection at -----');
+    console.log(promise);
+    console.log('----- Reason -----');
+    console.log(reason);
+});
+
+// -----------------------//
 
 const storage = multer.diskStorage({
     destination: (req, file, callBack) => {
@@ -176,9 +194,9 @@ app.post('/login', (req, res) => {
     const phone = req.body.phone;
     const email = req.body.email;
     const password = req.body.password;
-    let sql = 'SELECT * FROM user_account WHERE phone = ?;'
+    let sql = 'SELECT * FROM user_account WHERE phone = ?;';
     if (email) {
-        sql = 'SELECT * FROM user_account WHERE email = ?;'
+        sql = 'SELECT * FROM user_account WHERE email = ?;';
     }
 
     db.query(sql, [phone, email], (err, result) => {
@@ -394,7 +412,6 @@ app.post('/show-menu-friend', (req, res) => {
 
 // Accept Add Friend
 app.post('/accept-add-friend', (req, res) => {
-    console.log("Server Add friend");
     const user1ID = req.body.user1ID;
     const user2ID = req.body.user2ID;
     const createdAt = req.body.createdAt;
@@ -499,6 +516,21 @@ app.post('/delete-friend', (req, res) => {
 app.post('/delete-status', (req, res) => {
     const id = req.body.id;
 
+    const sql1 = 'call show_images_of_status(?);';
+    db.query(sql1, [id], (err, result) => {
+        if (err) res.send({ err: err });
+        if (result?.length > 0) {
+            result[0].forEach((image) => {
+                const path = './public/' + JSON.parse(JSON.stringify(image.image));
+                try {
+                    fs.unlinkSync(path);
+                } catch (error) {
+                    console.log(error);
+                }
+            });
+        }
+    });
+
     const sql = 'DELETE FROM status WHERE id=?;';
     db.query(sql, [id], (err, result) => {
         if (err) res.send({ err: err });
@@ -592,6 +624,24 @@ app.post('/remove-notification-like-status', (req, res) => {
     });
 });
 
+// Add Notification Status
+app.post('/add-notification-status', (req, res) => {
+    const senderID = req.body.senderID;
+    const receiverID = req.body.receiverID;
+    const action = req.body.action;
+    const statusID = req.body.statusID;
+    const createdAt = req.body.createdAt;
+
+    const sql =
+        'INSERT INTO notification (sender_id, receiver_id, action, status_id, created_at) VALUES (?, ?, ?, ?, ?);';
+    db.query(sql, [senderID, receiverID, action, statusID, createdAt], (err, result) => {
+        if (err) res.send({ err: err });
+        else {
+            res.send({ notificationID: result.insertId });
+        }
+    });
+});
+
 // Show Notification
 app.post('/show-notification', (req, res) => {
     const userID = req.body.userID;
@@ -663,6 +713,33 @@ app.post('/show-friend', (req, res) => {
             res.send({ message: 'No' });
         }
     });
+});
+
+// get-friends
+app.get('/api/user/friend', (req, res) => {
+    const id = req.query.id;
+    const limit = req.query.limit;
+    if (limit) {
+        const sql = 'CALL get_friends(?, ?)';
+        db.query(sql, [id, limit], (err, result) => {
+            if (err) res.send({ err: err });
+            if (result?.length > 0) {
+                res.send(result);
+            } else {
+                res.send({ message: 'No' });
+            }
+        });
+    } else {
+        const sql = 'CALL show_friend(?)';
+        db.query(sql, [id], (err, result) => {
+            if (err) res.send({ err: err });
+            if (result?.length > 0) {
+                res.send(result);
+            } else {
+                res.send({ message: 'No' });
+            }
+        });
+    }
 });
 
 // Show Conversation
@@ -844,17 +921,28 @@ app.post('/delete-comment-reply', (req, res) => {
     });
 });
 
-// List 9 Images
-app.post('/get-9-images', async (req, res) => {
-    const userID = req.body.userID;
+// List Images
+app.get('/api/user/image', async (req, res) => {
+    const id = req.query.id;
+    const limit = req.query.limit;
 
-    const sql = 'call get_9_images(?)';
-    await db.query(sql, [userID], (err, result) => {
-        if (err) res.send({ err: err });
-        if (result?.length > 0) {
-            res.send(result);
-        }
-    });
+    if (limit) {
+        const sql = 'call get_images(?, ?)';
+        await db.query(sql, [id, limit], (err, result) => {
+            if (err) res.send({ err: err });
+            if (result?.length > 0) {
+                res.send(result);
+            }
+        });
+    } else {
+        const sql = 'call get_full_images(?)';
+        await db.query(sql, [id], (err, result) => {
+            if (err) res.send({ err: err });
+            if (result?.length > 0) {
+                res.send(result);
+            }
+        });
+    }
 });
 
 // Update name
