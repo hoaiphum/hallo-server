@@ -6,6 +6,13 @@ const mysql = require('mysql');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const http = require('http').Server(app);
+
+const io = require('socket.io')(http, {
+    cors: {
+        origin: 'http://localhost:3000',
+    },
+});
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -39,6 +46,84 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // -----------------------//
+
+// -------------------------------------------------------------------------//
+// Socket
+// -------------------------------------------------------------------------//
+
+var onlineUsers = [];
+
+const addNewUser = (userID, socketID) => {
+    !onlineUsers.some((user) => user.userID === userID) && onlineUsers.push({ userID, socketID });
+    console.log('onlineUsers:');
+    console.log(onlineUsers);
+};
+
+const removeUser = (socketID) => {
+    onlineUsers = onlineUsers.filter((user) => user.socketID != socketID);
+};
+
+const getUser = (userID) => {
+    return onlineUsers.find((user) => user.userID == userID);
+};
+
+io.on('connection', (socket) => {
+    socket.on('newUser', (ID) => {
+        if (ID !== null) {
+            addNewUser(ID, socket.id);
+        }
+    });
+
+    socket.on('sendNotification', ({ receiverID, notificationID }) => {
+        const receiver = getUser(receiverID);
+        if (receiver) {
+            io.to(receiver.socketID).emit('getNotification', {
+                notificationID,
+            });
+        }
+    });
+
+    socket.on('sendRequestAddFriend', ({ receiverID, requestID }) => {
+        const receiver = getUser(receiverID);
+        if (receiver) {
+            io.to(receiver.socketID).emit('getRequestAddFriend', {
+                requestID,
+            });
+        }
+    });
+
+    socket.on(
+        'sendMessage',
+        ({ receiverID, messengerID, conversationID, senderID, content, createdAt, firstName, lastName, avatar }) => {
+            const receiver = getUser(receiverID);
+            if (receiver) {
+                console.log(receiver);
+                io.to(receiver.socketID).emit('getMessage', {
+                    messengerID,
+                    conversationID,
+                    senderID,
+                    content,
+                    createdAt,
+                    firstName,
+                    lastName,
+                    avatar,
+                });
+            }
+        },
+    );
+
+    io.emit('getOnlineUsers', {
+        onlineUsers,
+    });
+
+    socket.on('disconnect', () => {
+        removeUser(socket.id);
+    });
+});
+
+// ---------------------------------------------------------------------------//
+// ---------------------------------------------------------------------------//
+// ---------------------------------------------------------------------------//
 
 const storage = multer.diskStorage({
     destination: (req, file, callBack) => {
@@ -122,101 +207,9 @@ app.post('/image-upload-cover', uploadCover.single('image'), async (req, res) =>
     }
 });
 
-// Get Info User
-app.post('/getInfo', async (req, res) => {
-    const id = req.body.id;
-
-    const sql =
-        'SELECT a.*, b.avatar, b.cover, c.phone, c.email  FROM user a, user_image b, user_account c WHERE id = ? AND a.id = b.user_id AND a.id=c.user_id;';
-    await db.query(sql, [id], (err, result) => {
-        if (err) res.send({ err: err });
-        else {
-            res.send(result);
-        }
-    });
-});
-
-// Get Info User
-app.get('/userInfo', async (req, res) => {
-    const id = req.query.id;
-
-    const sql =
-        'SELECT a.*, b.avatar, b.cover, c.phone, c.email  FROM user a, user_image b, user_account c WHERE id = ? AND a.id = b.user_id AND a.id=c.user_id;';
-    await db.query(sql, [id], (err, result) => {
-        if (err) res.send({ err: err });
-        else {
-            res.send(result);
-        }
-    });
-});
-
-// Register
-app.post('/account-register', (req, res) => {
-    const firstName = req.body.firstName;
-    const lastName = req.body.lastName;
-    const birthday = req.body.birthday;
-    const gender = req.body.gender;
-    const phone = req.body.phone;
-    const email = req.body.email;
-    const password = req.body.password;
-    const createdAt = req.body.createdAt;
-
-    bcrypt.hash(password, saltRounds, (err, hash) => {
-        if (err) {
-            console.log(err);
-        }
-
-        const sql = 'INSERT INTO user (first_name, last_name, birthday, gender, created_at) VALUES (?, ?, ?, ?, ?);';
-        db.query(sql, [firstName, lastName, birthday, gender, createdAt], (err, result0) => {
-            const ID = result0.insertId;
-            if (err) res.send({ err: err });
-            else {
-                const sql2 = 'INSERT INTO user_account (user_id, phone, email, password) VALUES (?, ?, ?, ?);';
-
-                db.query(sql2, [ID, phone, email, hash], (err, result) => {
-                    if (err) res.send({ err: err });
-                    else {
-                        const sql3 =
-                            "INSERT INTO user_image (user_id, avatar, cover) VALUES (?, 'images/avatar/default.png', 'images/cover/default.jpg');";
-                        db.query(sql3, [ID], (err, result) => {
-                            if (err) res.send({ err: err });
-                            res.send({ ID: ID });
-                        });
-                    }
-                });
-            }
-        });
-    });
-});
-
-// Login
-app.post('/login', (req, res) => {
-    const phone = req.body.phone;
-    const email = req.body.email;
-    const password = req.body.password;
-    let sql = 'SELECT * FROM user_account WHERE phone = ?;';
-    if (email) {
-        sql = 'SELECT * FROM user_account WHERE email = ?;';
-    }
-
-    db.query(sql, [phone, email], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            bcrypt.compare(password, result[0].password, (err, response) => {
-                if (response) {
-                    res.send(result);
-                } else {
-                    res.send({ message: 'Wrong Password' });
-                }
-            });
-        } else {
-            res.send({ message: 'No user' });
-        }
-    });
-});
+// New update
+require('./app/routes/user.router')(app);
+require('./app/routes/status.router')(app);
 
 // Post status
 app.post('/post-status', (req, res) => {
@@ -1156,6 +1149,6 @@ app.post('/update-birthday', async (req, res) => {
     });
 });
 
-app.listen(3001, () => {
+http.listen(3001, () => {
     console.log('Running  on port 3001');
 });
