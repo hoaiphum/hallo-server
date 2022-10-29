@@ -1,4 +1,4 @@
-var User = require('../models/user.models');
+var User = require('../models/user.model');
 exports.info = (req, res) => {
     const id = req.query.id;
 
@@ -35,5 +35,49 @@ exports.login = (req, res) => {
         } else {
             res.send({ data: response });
         }
+    });
+};
+
+// UPDATE
+
+exports.updateName = (req, res) => {
+    const data = req.body.data;
+    User.updateName(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.updateEmail = (req, res) => {
+    const data = req.body.data;
+    User.updateEmail(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.updatePhone = (req, res) => {
+    const data = req.body.data;
+    User.updatePhone(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.updatePassword = (req, res) => {
+    const data = req.body.data;
+    User.updatePassword(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.updateGender = (req, res) => {
+    const data = req.body.data;
+    User.updateGender(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.updateBirthday = (req, res) => {
+    const data = req.body.data;
+    User.updateBirthday(data, (response) => {
+        res.send({ message: response });
     });
 };

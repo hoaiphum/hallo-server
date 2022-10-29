@@ -4,4 +4,10 @@ module.exports = (router) => {
     router.get('/user', userController.info);
     router.post('/user/register', userController.register);
     router.post('/user/login', userController.login);
+    router.put('/user/update/name', userController.updateName);
+    router.put('/user/update/email', userController.updateEmail);
+    router.put('/user/update/phone', userController.updatePhone);
+    router.put('/user/update/password', userController.updatePassword);
+    router.put('/user/update/gender', userController.updateGender);
+    router.put('/user/update/birthday', userController.updateBirthday);
 };

@@ -88,4 +88,83 @@ User.login = (data, result) => {
         }
     });
 };
+
+User.updateName = (data, res) => {
+    const sql = 'UPDATE user SET first_name=?, last_name=? WHERE id=?;';
+    db.query(sql, [data.firstName, data.lastName, data.userID], (err, result) => {
+        if (err) res(null);
+        else {
+            res('Success');
+        }
+    });
+};
+
+User.updateEmail = (data, res) => {
+    const sql = 'UPDATE user_account SET email=? WHERE user_id=?;';
+    db.query(sql, [data.email, data.userID], (err, result) => {
+        if (err) res(null);
+        else {
+            res('Success');
+        }
+    });
+};
+
+User.updatePhone = (data, res) => {
+    const sql = 'UPDATE user_account SET phone=? WHERE user_id=?;';
+    db.query(sql, [data.phone, data.userID], (err, result) => {
+        if (err) res(null);
+        else {
+            res('Success');
+        }
+    });
+};
+
+User.updatePassword = (data, res) => {
+    const sqlCheck = 'SELECT * FROM user_account WHERE user_id = ?;';
+    db.query(sqlCheck, [data.userID], (err, result) => {
+        if (err || result?.length === 0) {
+            res(null);
+        } else {
+            bcrypt.compare(data.password, result[0].password, (err, response) => {
+                if (response) {
+                    bcrypt.hash(data.newPassword, saltRounds, (err, hash) => {
+                        if (err) res(null);
+                        else {
+                            const sql = 'UPDATE user_account SET password=? WHERE user_id=?;';
+                            db.query(sql, [hash, data.userID], (err, result) => {
+                                if (err) res(null);
+                                else {
+                                    res('Success');
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    res('Wrong Password');
+                }
+            });
+        }
+    });
+};
+
+User.updateGender = (data, res) => {
+    const sql = 'UPDATE user SET gender=? WHERE id=?;';
+    db.query(sql, [data.gender, data.userID], (err, result) => {
+        if (err) res(null);
+        else {
+            res('Success');
+        }
+    });
+};
+
+User.updateBirthday = (data, res) => {
+    const sql = 'UPDATE user SET birthday=? WHERE id=?;';
+    db.query(sql, [data.birthday, data.userID], (err, result) => {
+        if (err) res(null);
+        else {
+            res('Success');
+        }
+    });
+};
+
 module.exports = User;
