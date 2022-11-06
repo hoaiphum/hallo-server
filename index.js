@@ -23,6 +23,7 @@ const db = mysql.createPool({
     user: 'root',
     password: '',
     database: 'facebook',
+    charset: 'utf8mb4',
 });
 
 app.use(cors());
@@ -55,8 +56,6 @@ var onlineUsers = [];
 
 const addNewUser = (userID, socketID) => {
     !onlineUsers.some((user) => user.userID === userID) && onlineUsers.push({ userID, socketID });
-    console.log('onlineUsers:');
-    console.log(onlineUsers);
 };
 
 const removeUser = (socketID) => {
@@ -71,6 +70,9 @@ io.on('connection', (socket) => {
     socket.on('newUser', (ID) => {
         if (ID !== null) {
             addNewUser(ID, socket.id);
+            io.emit('getOnlineUsers', {
+                onlineUsers,
+            });
         }
     });
 
@@ -112,27 +114,17 @@ io.on('connection', (socket) => {
         },
     );
 
-    io.emit('getOnlineUsers', {
-        onlineUsers,
-    });
-
     socket.on('disconnect', () => {
         removeUser(socket.id);
+        io.emit('getOnlineUsers', {
+            onlineUsers,
+        });
     });
 });
 
 // ---------------------------------------------------------------------------//
 // ---------------------------------------------------------------------------//
 // ---------------------------------------------------------------------------//
-
-const storage = multer.diskStorage({
-    destination: (req, file, callBack) => {
-        callBack(null, './public/images/images_stt/');
-    },
-    filename: (req, file, callBack) => {
-        callBack(null, `${Date.now()}${path.extname(file.originalname)}`);
-    },
-});
 
 const storageAvatar = multer.diskStorage({
     destination: (req, file, callBack) => {
@@ -152,30 +144,8 @@ const storageCover = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage: storage });
 const uploadAvatar = multer({ storage: storageAvatar });
 const uploadCover = multer({ storage: storageCover });
-
-//route for post data
-app.post('/image-upload', upload.array('image', 10), async (req, res) => {
-    const statusID = req.body.statusID;
-
-    if (!req.files) {
-        console.log('No file upload');
-    } else {
-        const files = req.files;
-        let index, len;
-
-        for (index = 0, len = files.length; index < len; ++index) {
-            var imgsrc = 'images/images_stt/' + files[index].filename;
-            var insertData = 'INSERT INTO status_image (status_id, image) VALUES (?, ?);';
-            await db.query(insertData, [statusID, imgsrc], (err, result) => {
-                if (err) throw err;
-            });
-        }
-        res.send({ message: 'Success' });
-    }
-});
 
 //Upload Avatar
 app.post('/image-upload-avatar', uploadAvatar.single('image'), async (req, res) => {
@@ -210,124 +180,10 @@ app.post('/image-upload-cover', uploadCover.single('image'), async (req, res) =>
 // New update
 require('./app/routes/user.router')(app);
 require('./app/routes/status.router')(app);
-
-// Post status
-app.post('/post-status', (req, res) => {
-    const id = req.body.id;
-    const permission = req.body.permission;
-    const statusContent = req.body.statusContent;
-    const createdAt = req.body.createdAt;
-
-    const sql = 'INSERT INTO status (user_id, permission, content, created_at) VALUES (?, ?, ?, ?);';
-    db.query(sql, [id, permission, statusContent, createdAt], (err, result) => {
-        if (err) res.send({ err: err });
-        else {
-            const statusID = result.insertId;
-            const sql = 'CALL get_status(?);';
-            db.query(sql, [statusID], (err, result) => {
-                if (err) res.send({ err: err });
-                if (result?.length > 0) {
-                    res.send(result);
-                }
-            });
-        }
-    });
-});
-
-// Show List Status
-app.post('/list-status-by-user', (req, res) => {
-    const id = req.body.id;
-    const start = req.body.start;
-    const lim = req.body.lim;
-    const sql = 'call show_list_status_by_user(?,?,?);';
-    db.query(sql, [id, start, lim], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No status' });
-        }
-    });
-});
-
-// Show List Status Friend
-app.post('/list-status-friend', (req, res) => {
-    const id = req.body.id;
-    const start = req.body.start;
-    const lim = req.body.lim;
-    const sql = 'call show_list_status_friend(?,?,?);';
-    db.query(sql, [id, start, lim], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No status' });
-        }
-    });
-});
-
-// Show List Status No Friend
-app.post('/list-status-no-friend', (req, res) => {
-    const id = req.body.id;
-    const start = req.body.start;
-    const lim = req.body.lim;
-
-    const sql = 'call show_list_status_no_friend(?,?,?);';
-    db.query(sql, [id, start, lim], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No status' });
-        }
-    });
-});
-
-// Show Status By StatusID
-app.post('/show-status-by-id', (req, res) => {
-    const id = req.body.id;
-    const sql = 'call show_status_by_status_id(?);';
-    db.query(sql, [id], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No status' });
-        }
-    });
-});
-
-// Show List Status Feed Page
-app.post('/list-status-feed-page', (req, res) => {
-    const id = req.body.id;
-    const start = req.body.start;
-    const lim = req.body.lim;
-
-    const sql = 'call show_list_status_feed_page(?, ?, ?);';
-    db.query(sql, [id, start, lim], (err, result) => {
-        if (err) {
-            res.send({ err: err });
-        }
-
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No status' });
-        }
-    });
-});
+require('./app/routes/like.router')(app);
+require('./app/routes/comment.router')(app);
+require('./app/routes/conversation.router')(app);
+require('./app/routes/friend.router')(app);
 
 // Show Images of Status
 app.post('/show-images-of-status', (req, res) => {
@@ -752,11 +608,10 @@ app.post('/show-conversation', (req, res) => {
 
 // Show Messenger
 app.post('/show-messenger', (req, res) => {
-    const user1ID = req.body.user1ID;
-    const user2ID = req.body.user2ID;
+    const conversationID = req.body.conversationID;
 
-    const sql = 'CALL get_messenger(?,?)';
-    db.query(sql, [user1ID, user2ID], (err, result) => {
+    const sql = 'CALL get_messenger(?)';
+    db.query(sql, [conversationID], (err, result) => {
         if (err) res.send({ err: err });
         if (result?.length > 0) {
             res.send(result);

@@ -7,5 +7,7 @@ module.exports = (router) => {
     router.get('/status/list-no-friend', statusController.listByNoFriend);
     router.get('/status/list-feed-page', statusController.listFeedPage);
     router.post('/status/add', statusController.add);
+    router.post('/status/add-image', statusController.uploadImage, statusController.addImage);
+    router.post('/status/add-video', statusController.uploadVideo, statusController.addVideo);
     router.delete('/status/remove', statusController.remove);
 };

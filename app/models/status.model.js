@@ -1,14 +1,15 @@
 const db = require('../common/connect');
+
 const fs = require('fs');
 
 const Status = (status) => {};
 
-Status.detail = (id, result) => {
+Status.detail = (id, res) => {
     const sql = 'call show_status_by_status_id(?);';
-    db.query(sql, [id], (err, res) => {
-        if (err || res?.length === 0) {
-            result(null);
-        } else result(res[0]);
+    db.query(sql, [id], (err, result) => {
+        if (err || result?.length === 0) {
+            res(null);
+        } else res(result[0][0]);
     });
 };
 
@@ -17,7 +18,7 @@ Status.listByUserID = (data, res) => {
     db.query(sql, [data.id, data.start, data.lim], (err, result) => {
         if (err || result?.length === 0) {
             res(null);
-        } else res(result);
+        } else res(result[0]);
     });
 };
 
@@ -26,7 +27,7 @@ Status.listByFriend = (data, res) => {
     db.query(sql, [data.id, data.start, data.lim], (err, result) => {
         if (err || result?.length === 0) {
             res(null);
-        } else res(result);
+        } else res(result[0]);
     });
 };
 
@@ -35,7 +36,7 @@ Status.listByNoFriend = (data, res) => {
     db.query(sql, [data.id, data.start, data.lim], (err, result) => {
         if (err || result?.length === 0) {
             res(null);
-        } else res(result);
+        } else res(result[0]);
     });
 };
 
@@ -44,18 +45,33 @@ Status.listFeedPage = (data, res) => {
     db.query(sql, [data.id, data.start, data.lim], (err, result) => {
         if (err || result?.length === 0) {
             res(null);
-        } else res(result);
+        } else res(result[0]);
     });
 };
 
 Status.add = (data, res) => {
     const sql = 'INSERT INTO status (user_id, permission, content, created_at) VALUES (?, ?, ?, ?);';
-    db.query(sql, [data.id, data.permission, data.content, data.created_at], (err, result) => {
-        if (err) res(null);
-        else {
+    db.query(sql, [data.user_id, data.permission, data.content, data.created_at], (err, result) => {
+        if (err) {
+            res(null);
+        } else {
             const id = result.insertId;
-            res(id, ...data);
+            res({ id, ...data });
         }
+    });
+};
+
+Status.addImage = (data, res) => {
+    var insertData = 'INSERT INTO status_image (status_id, image) VALUES (?, ?);';
+    db.query(insertData, [data.statusID, data.src], (err, result) => {
+        if (err) throw err;
+    });
+};
+
+Status.addVideo = (data, res) => {
+    var insertData = 'INSERT INTO status_video (status_id, video) VALUES (?, ?);';
+    db.query(insertData, [data.statusID, data.src], (err, result) => {
+        if (err) throw err;
     });
 };
 

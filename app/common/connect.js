@@ -5,6 +5,7 @@ const db = mysql.createConnection({
     user: 'root',
     password: '',
     database: 'facebook',
+    charset: 'utf8mb4',
 });
 
 db.connect((err) => {
