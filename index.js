@@ -59,7 +59,7 @@ const addNewUser = (userID, socketID) => {
 };
 
 const removeUser = (socketID) => {
-    onlineUsers = onlineUsers.filter((user) => user.socketID != socketID);
+    onlineUsers = onlineUsers.filter((user) => user.socketID !== socketID);
 };
 
 const getUser = (userID) => {
@@ -94,25 +94,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on(
-        'sendMessage',
-        ({ receiverID, messengerID, conversationID, senderID, content, createdAt, firstName, lastName, avatar }) => {
-            const receiver = getUser(receiverID);
-            if (receiver) {
-                console.log(receiver);
-                io.to(receiver.socketID).emit('getMessage', {
-                    messengerID,
-                    conversationID,
-                    senderID,
-                    content,
-                    createdAt,
-                    firstName,
-                    lastName,
-                    avatar,
-                });
-            }
-        },
-    );
+    socket.on('sendMessage', (data) => {
+        const receiver = getUser(data.receiverID);
+        console.log(receiver);
+        if (receiver) {
+            io.to(receiver.socketID).emit('getMessage', {
+                data,
+            });
+        }
+    });
 
     socket.on('disconnect', () => {
         removeUser(socket.id);
@@ -564,32 +554,32 @@ app.post('/show-friend', (req, res) => {
     });
 });
 
-// get-friends
-app.get('/api/user/friend', (req, res) => {
-    const id = req.query.id;
-    const limit = req.query.limit;
-    if (limit) {
-        const sql = 'CALL get_friends(?, ?)';
-        db.query(sql, [id, limit], (err, result) => {
-            if (err) res.send({ err: err });
-            if (result?.length > 0) {
-                res.send(result);
-            } else {
-                res.send({ message: 'No' });
-            }
-        });
-    } else {
-        const sql = 'CALL show_friend(?)';
-        db.query(sql, [id], (err, result) => {
-            if (err) res.send({ err: err });
-            if (result?.length > 0) {
-                res.send(result);
-            } else {
-                res.send({ message: 'No' });
-            }
-        });
-    }
-});
+// // get-friends
+// app.get('/api/user/friend', (req, res) => {
+//     const id = req.query.id;
+//     const limit = req.query.limit;
+//     if (limit) {
+//         const sql = 'CALL get_friends(?, ?)';
+//         db.query(sql, [id, limit], (err, result) => {
+//             if (err) res.send({ err: err });
+//             if (result?.length > 0) {
+//                 res.send(result);
+//             } else {
+//                 res.send({ message: 'No' });
+//             }
+//         });
+//     } else {
+//         const sql = 'CALL show_friend(?)';
+//         db.query(sql, [id], (err, result) => {
+//             if (err) res.send({ err: err });
+//             if (result?.length > 0) {
+//                 res.send(result);
+//             } else {
+//                 res.send({ message: 'No' });
+//             }
+//         });
+//     }
+// });
 
 // Show Conversation
 app.post('/show-conversation', (req, res) => {
@@ -640,21 +630,6 @@ app.post('/send-message', (req, res) => {
                     res.send(result);
                 }
             });
-        }
-    });
-});
-
-// Show Messenger
-app.post('/get-user-by-name', (req, res) => {
-    const name = req.body.name;
-
-    const sql = 'CALL get_user_by_name(?)';
-    db.query(sql, [name], (err, result) => {
-        if (err) res.send({ err: err });
-        if (result?.length > 0) {
-            res.send(result);
-        } else {
-            res.send({ message: 'No' });
         }
     });
 });

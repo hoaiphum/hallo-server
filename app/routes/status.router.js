@@ -6,6 +6,7 @@ module.exports = (router) => {
     router.get('/status/list-friend', statusController.listByFriend);
     router.get('/status/list-no-friend', statusController.listByNoFriend);
     router.get('/status/list-feed-page', statusController.listFeedPage);
+    router.get('/status/video', statusController.getVideo);
     router.post('/status/add', statusController.add);
     router.post('/status/add-image', statusController.uploadImage, statusController.addImage);
     router.post('/status/add-video', statusController.uploadVideo, statusController.addVideo);

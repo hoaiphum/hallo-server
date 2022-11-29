@@ -58,6 +58,14 @@ exports.listFeedPage = (req, res) => {
     });
 };
 
+exports.getVideo = (req, res) => {
+    const statusID = req.query.statusID;
+
+    Status.getVideo(statusID, (response) => {
+        res.send({ data: response });
+    });
+};
+
 exports.add = (req, res) => {
     const status = req.body.data;
     const data = {

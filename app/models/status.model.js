@@ -49,6 +49,15 @@ Status.listFeedPage = (data, res) => {
     });
 };
 
+Status.getVideo = (statusID, res) => {
+    const sql = 'SELECT * FROM status_video WHERE status_id = ?;';
+    db.query(sql, [statusID], (err, result) => {
+        if (err || result?.length === 0) {
+            res(null);
+        } else res(result[0]);
+    });
+};
+
 Status.add = (data, res) => {
     const sql = 'INSERT INTO status (user_id, permission, content, created_at) VALUES (?, ?, ?, ?);';
     db.query(sql, [data.user_id, data.permission, data.content, data.created_at], (err, result) => {
@@ -78,7 +87,7 @@ Status.addVideo = (data, res) => {
 Status.remove = (id, res) => {
     const sql1 = 'call show_images_of_status(?);';
     db.query(sql1, [id], (err, result) => {
-        if (err) res.send({ err: err });
+        if (err) console.log(err);
         if (result?.length > 0) {
             result[0].forEach((image) => {
                 const path = './public/' + JSON.parse(JSON.stringify(image.image));
@@ -88,6 +97,20 @@ Status.remove = (id, res) => {
                     console.log(error);
                 }
             });
+        }
+    });
+
+    const sqlVideo = 'SELECT * FROM status_video WHERE status_id = ?;';
+    db.query(sqlVideo, [id], (err, result) => {
+        if (err) console.log(err);
+        if (result?.length > 0) {
+            const video = result[0];
+            const path = './public/' + JSON.parse(JSON.stringify(video.video));
+            try {
+                fs.unlinkSync(path);
+            } catch (error) {
+                console.log(error);
+            }
         }
     });
 

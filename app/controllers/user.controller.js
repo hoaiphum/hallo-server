@@ -7,6 +7,23 @@ exports.info = (req, res) => {
     });
 };
 
+exports.getUsersByName = (req, res) => {
+    const name = req.query.name;
+
+    User.getUsersByName(name, (response) => {
+        res.send({ data: response });
+    });
+};
+
+exports.getFriends = (req, res) => {
+    const id = req.query.id;
+    const limit = req.query.limit;
+
+    User.getFriends(id, limit, (response) => {
+        res.send({ data: response });
+    });
+};
+
 exports.register = (req, res) => {
     const data = {
         firstName: req.body.firstName,
@@ -78,6 +95,15 @@ exports.updateGender = (req, res) => {
 exports.updateBirthday = (req, res) => {
     const data = req.body.data;
     User.updateBirthday(data, (response) => {
+        res.send({ message: response });
+    });
+};
+
+exports.removeFriend = (req, res) => {
+    const user1ID = req.query.user1ID;
+    const user2ID = req.query.user2ID;
+
+    User.removeFriend(user1ID, user2ID, (response) => {
         res.send({ message: response });
     });
 };

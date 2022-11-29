@@ -26,6 +26,36 @@ User.info = (id, result) => {
     });
 };
 
+User.getUsersByName = (name, res) => {
+    const sql = 'CALL get_user_by_name(?)';
+    db.query(sql, [name], (err, result) => {
+        if (err || result?.length === 0) res(null);
+        else {
+            res(result[0]);
+        }
+    });
+};
+
+User.getFriends = (id, limit, res) => {
+    if (limit) {
+        const sql = 'CALL get_friends(?, ?)';
+        db.query(sql, [id, limit], (err, result) => {
+            if (err || result?.length === 0) res(null);
+            else {
+                res(result[0]);
+            }
+        });
+    } else {
+        const sql = 'CALL show_friend(?)';
+        db.query(sql, [id], (err, result) => {
+            if (err || result?.length === 0) res(null);
+            else {
+                res(result[0]);
+            }
+        });
+    }
+};
+
 User.register = (data, result) => {
     bcrypt.hash(data.password, saltRounds, (err, hash) => {
         if (err) {
@@ -163,6 +193,22 @@ User.updateBirthday = (data, res) => {
         if (err) res(null);
         else {
             res('Success');
+        }
+    });
+};
+
+User.removeFriend = (user1ID, user2ID, res) => {
+    const sql = 'DELETE FROM user_friend WHERE user1_id=? AND user2_id=? OR user2_id=? AND user1_id=?;';
+    db.query(sql, [user1ID, user2ID, user1ID, user2ID], (err, result) => {
+        if (err) res(err);
+        else {
+            const sql = 'CALL delete_conversation(?,?);';
+            db.query(sql, [user1ID, user2ID], (err, result) => {
+                if (err) res(err);
+                else {
+                    res('Success');
+                }
+            });
         }
     });
 };
