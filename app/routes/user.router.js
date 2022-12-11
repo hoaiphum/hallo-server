@@ -13,4 +13,5 @@ module.exports = (router) => {
     router.put('/user/update/gender', userController.updateGender);
     router.put('/user/update/birthday', userController.updateBirthday);
     router.delete('/user/friend/delete', userController.removeFriend);
+    router.get('/user/videos', userController.getListVideo);
 };

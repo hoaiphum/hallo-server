@@ -107,3 +107,10 @@ exports.removeFriend = (req, res) => {
         res.send({ message: response });
     });
 };
+
+exports.getListVideo = (req, res) => {
+    const id = req.query.id;
+    User.getListVideo(id, (response) => {
+        res.send({ data: response });
+    });
+};

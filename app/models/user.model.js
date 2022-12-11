@@ -213,4 +213,14 @@ User.removeFriend = (user1ID, user2ID, res) => {
     });
 };
 
+User.getListVideo = (id, res) => {
+    const sql = 'call get_full_videos(?)';
+    db.query(sql, [id], (err, result) => {
+        if (err || result?.length === 0) res(null);
+        else {
+            res(result[0]);
+        }
+    });
+};
+
 module.exports = User;
